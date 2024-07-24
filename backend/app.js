@@ -1,6 +1,7 @@
 import express from 'express';
 import userRouter from './routes/userRouter.js';
 import mongoose from 'mongoose';
+import errorHandler from './middlewares/errorHandlerMiddleware.js';
 
 const app = express();
 
@@ -15,6 +16,9 @@ app.use(express.json());
 
 //! Routes
 app.use('/', userRouter);
+
+//! Error
+app.use(errorHandler)
 
 
 

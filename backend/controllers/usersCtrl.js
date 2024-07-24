@@ -1,5 +1,6 @@
 import asyncHandler from 'express-async-handler'
 import bcrypt from 'bcryptjs'
+import jwt from 'jsonwebtoken'
 import { User } from '../model/User.js'
 
 //! User Registration
@@ -37,6 +38,47 @@ const usersController = {
         })
         console.log(req.body);
         // res.json({ message: "Register" })
+    }),
+
+    //! Login
+    login: asyncHandler(async (req,res) => {
+        //! Get the user data
+        const {email,password} = req.body;
+        const user = await User.findOne({email});
+        if(!user){
+            throw new Error('Invalid login credentials')
+        }
+
+        const isMatch = await bcrypt.compare(password,user.password);
+        if(!isMatch){
+            throw new Error('Invalid login credentials');
+        }
+        //! Generate a token for the user
+        const token = jwt.sign({id:user._id},"sunnyToken",{
+            expiresIn: '30d'
+        });
+        //! Send the response
+        res.json({
+            message:'Login Success',
+            token,
+            id: user._id,
+            email: user.email,
+            username: user.username
+        })
+    }),
+
+    //!profile
+    profile: asyncHandler(async (req,res) => {
+        //! Find the user
+        const user = await User.findById("req.user");
+        if(!user){
+            throw new Error('User not found');
+        }
+        //! Send the response
+        res.json({
+            username:user.username,
+            email: user.email
+        })
     })
 }
 
