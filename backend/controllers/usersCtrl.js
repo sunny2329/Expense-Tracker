@@ -22,18 +22,18 @@ const usersController = {
         }
         //! Hash the password
         const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password,salt);
+        const hashedPassword = await bcrypt.hash(password, salt);
         //! Create the user and save it in the database
         const userCreated = await User.create({
             email,
             username,
-            password:hashedPassword
+            password: hashedPassword
         })
 
 
         res.json({
             username: userCreated.username,
-            email:userCreated.email,
+            email: userCreated.email,
             id: userCreated._id
         })
         console.log(req.body);
@@ -41,25 +41,25 @@ const usersController = {
     }),
 
     //! Login
-    login: asyncHandler(async (req,res) => {
+    login: asyncHandler(async (req, res) => {
         //! Get the user data
-        const {email,password} = req.body;
-        const user = await User.findOne({email});
-        if(!user){
+        const { email, password } = req.body;
+        const user = await User.findOne({ email });
+        if (!user) {
             throw new Error('Invalid login credentials')
         }
 
-        const isMatch = await bcrypt.compare(password,user.password);
-        if(!isMatch){
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
             throw new Error('Invalid login credentials');
         }
         //! Generate a token for the user
-        const token = jwt.sign({id:user._id},"sunnyToken",{
+        const token = jwt.sign({ id: user._id }, "sunnyToken", {
             expiresIn: '30d'
         });
         //! Send the response
         res.json({
-            message:'Login Success',
+            message: 'Login Success',
             token,
             id: user._id,
             email: user.email,
@@ -68,16 +68,50 @@ const usersController = {
     }),
 
     //!profile
-    profile: asyncHandler(async (req,res) => {
+    profile: asyncHandler(async (req, res) => {
         //! Find the user
         const user = await User.findById("req.user");
-        if(!user){
+        if (!user) {
             throw new Error('User not found');
         }
         //! Send the response
         res.json({
-            username:user.username,
+            username: user.username,
             email: user.email
+        })
+    }),
+    //! Change user password
+    changeUserPassword: asyncHandler(async (req, res) => {
+        const { newPassword } = req.body;
+        //! Find the user
+        const user = await User.findById("req.user");
+        if (!user) {
+            throw new Error('User not found');
+        }
+        //! Hash the new password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+        user.password = hashedPassword
+        await user.save();
+        //! Send the response
+        res.json({
+            message: 'Password changed successfully'
+        })
+    }),
+    //! Update the user profile
+    updateUserProfile: asyncHandler(async (req, res) => {
+        const { email, username } = req.body;
+        const updatedUser = await User.findByIdAndUpdate(req.user, {
+            username,
+            email
+        }, {
+            new: true
+        })
+        //! Send the response
+        res.json({
+            message: 'User Profile updated successfully',
+            updatedUser
+
         })
     })
 }
