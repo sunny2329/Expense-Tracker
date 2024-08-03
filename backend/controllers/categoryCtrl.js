@@ -18,26 +18,64 @@ const categoryController = {
         }
         //! Check if category already exists on the user
         const categoryExists = await Category.findOne({ name: normalizedName, user: req.user });
-        if(categoryExists){
+        if (categoryExists) {
             throw new Error(`Category ${categoryExists.name} already exists`);
         }
         //! Create the category
         const category = await Category.create({
-            name:normalizedName,
-            user:req.user,
+            name: normalizedName,
+            user: req.user,
             type
         })
         res.status(201).json(category)
     }),
     //! lists
     lists: asyncHandler(async (req, res) => {
-        const categories = await Category.find({user:req.user});
+        const categories = await Category.find({ user: req.user });
         res.status(200).json(categories);
     }),
     //! update
-    update: asyncHandler(async (req, res) => { }),
+    update: asyncHandler(async (req, res) => {
+        const categoryId = req.params;
+        const { type, name } = req.body;
+        const normalizedName = name.toLowerCase();
+        const category = await Category.findById(categoryId);
+        if (!category && category.user.toString() !== req.user.toString()) {
+            throw new Error('Category not found or user not authorized');
+        }
+        const oldName = category.name;
+        //! Update category properties
+        category.name = name;
+        category.type = type;
+        const updatedCategory = await category.save();
+        if (oldName !== updatedCategory.name) {
+            await Transaction.updateMany({
+                user: req.user,
+                category: oldName
+            },
+                {
+                    $set: { category: updatedCategory.name }
+                })
+        }
+        res.json(updatedCategory)
+    }),
     //! delete
-    delete: asyncHandler(async (req, res) => { })
+    delete: asyncHandler(async (req, res) => { 
+        const category = await Category.findById(req.params.id);
+        if(category && category.user.toString() === req.user.toString()){
+            //! Update transactions that have this category
+            const defaultCategory = 'Uncategorized';
+            await Transaction.updateMany(
+                {user:req.user, category: category._id},
+                {$set: {category: defaultCategory}}
+            );
+            //! Remove category
+            await Category.findByIdAndDelete(req.params.id);
+            res.json({message:'Category removed and transactions updated'})
+        }else{
+            res.json({message:'Category not found or user not authorized'});
+        }
+    })
 
 }
 
