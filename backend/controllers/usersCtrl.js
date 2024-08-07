@@ -1,120 +1,114 @@
-import asyncHandler from 'express-async-handler'
-import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
-import { User } from '../model/User.js'
+const asyncHandler = require("express-async-handler");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const User = require("../model/User");
 
-//! User Registration
+//!User Registration
 
 const usersController = {
     //!Register
     register: asyncHandler(async (req, res) => {
         const { username, email, password } = req.body;
-        //!validate
+        //!Validate
         if (!username || !email || !password) {
-            throw new Error('Please all fields are required')
+            throw new Error("Please all fields are required");
         }
+        //!Check if user already exists
         const userExists = await User.findOne({ email });
         if (userExists) {
-            res.json({
-                message: 'User already exists'
-            })
-            throw new Error('User already exists')
+            throw new Error("User already exists");
         }
-        //! Hash the password
+        //!Hash the user password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
-        //! Create the user and save it in the database
+        //! Create the user and save into db
         const userCreated = await User.create({
             email,
             username,
-            password: hashedPassword
-        })
-
+            password: hashedPassword,
+        });
+        //! Send the response
 
         res.json({
             username: userCreated.username,
             email: userCreated.email,
-            id: userCreated._id
-        })
-        console.log(req.body);
-        // res.json({ message: "Register" })
+            id: userCreated._id,
+        });
     }),
-
-    //! Login
+    //!Login
     login: asyncHandler(async (req, res) => {
         //! Get the user data
         const { email, password } = req.body;
+        //!check if email is valid
         const user = await User.findOne({ email });
         if (!user) {
-            throw new Error('Invalid login credentials')
+            throw new Error("Invalid login credentials");
         }
-
+        //! Compare the user password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            throw new Error('Invalid login credentials');
+            throw new Error("Invalid login credentials");
         }
-        //! Generate a token for the user
-        const token = jwt.sign({ id: user._id }, "sunnyToken", {
-            expiresIn: '30d'
+        //! Generate a token
+        const token = jwt.sign({ id: user._id }, "masynctechKey", {
+            expiresIn: "30d",
         });
-        //! Send the response
+        //!Send the response
         res.json({
-            message: 'Login Success',
+            message: "Login Success",
             token,
             id: user._id,
             email: user.email,
-            username: user.username
-        })
+            username: user.username,
+        });
     }),
 
     //!profile
     profile: asyncHandler(async (req, res) => {
         //! Find the user
-        const user = await User.findById("req.user");
+        console.log(req.user);
+        const user = await User.findById(req.user);
         if (!user) {
-            throw new Error('User not found');
+            throw new Error("User not found");
         }
-        //! Send the response
-        res.json({
-            username: user.username,
-            email: user.email
-        })
+        //!Send the response
+        res.json({ username: user.username, email: user.email });
     }),
-    //! Change user password
+    //! Change password
     changeUserPassword: asyncHandler(async (req, res) => {
         const { newPassword } = req.body;
         //! Find the user
-        const user = await User.findById("req.user");
+        const user = await User.findById(req.user);
         if (!user) {
-            throw new Error('User not found');
+            throw new Error("User not found");
         }
-        //! Hash the new password
+        //! Hash the new password before saving
+        //!Hash the user password
         const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-        user.password = hashedPassword
-        await user.save();
-        //! Send the response
-        res.json({
-            message: 'Password changed successfully'
-        })
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+        user.password = hashedPassword;
+        //! ReSave
+        await user.save({
+            validateBeforeSave: false,
+        });
+        //!Send the response
+        res.json({ message: "Password Changed successfully" });
     }),
-    //! Update the user profile
+    //! update user profile
     updateUserProfile: asyncHandler(async (req, res) => {
         const { email, username } = req.body;
-        const updatedUser = await User.findByIdAndUpdate(req.user, {
-            username,
-            email
-        }, {
-            new: true
-        })
-        //! Send the response
-        res.json({
-            message: 'User Profile updated successfully',
-            updatedUser
+        const updatedUser = await User.findByIdAndUpdate(
+            req.user,
+            {
+                username,
+                email,
+            },
+            {
+                new: true,
+            }
+        );
+        res.json({ message: "User profile updated successfully", updatedUser });
+    }),
+};
 
-        })
-    })
-}
-
-
-export default usersController
+module.exports = usersController;

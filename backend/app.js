@@ -1,30 +1,35 @@
-import express from 'express';
-import userRouter from './routes/userRouter.js';
-import categoryRouter from './routes/categoryRouter.js';
-import mongoose from 'mongoose';
-import errorHandler from './middlewares/errorHandlerMiddleware.js';
-import transactionRouter from './routes/transactionRouter.js';
-
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const userRouter = require("./routes/userRouter");
+const errorHandler = require("./middlewares/errorHandlerMiddleware");
+const categoryRouter = require("./routes/categoryRouter");
+const transactionRouter = require("./routes/transactionRouter");
+require('dotenv').config();
 const app = express();
-
+const uri = process.env.MONGODB_URI
 //!Connect to mongodb
-mongoose.connect('mongodb+srv://sobhit230:AU4Te03RSXGQpCCk@cluster0.6y56mxv.mongodb.net/expense-tracker').then(() => {
-    return console.log('Connected to MongoDB');
-}).catch((e) => console.error(e));
+mongoose
+    .connect(uri)
+    .then(() => console.log("DB Connected"))
+    .catch((e) => console.log(e));
 
-
-//! Middlewares
-app.use(express.json());
-
-//! Routes
-app.use('/', userRouter);
-app.use('/',categoryRouter);
-app.use('/',transactionRouter);
-
+//! Cors config
+const corsOptions = {
+    origin: ["http://localhost:5173"],
+};
+app.use(cors(corsOptions));
+//!Middlewares
+app.use(express.json()); //?Pass incoming json data
+//!Routes
+app.use("/", userRouter);
+app.use("/", categoryRouter);
+app.use("/", transactionRouter);
 //! Error
-app.use(errorHandler)
+app.use(errorHandler);
 
-
-
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, console.log('listening on port ' + PORT));
+//!Start the server
+const PORT = process.env.PORT || 8000;
+app.listen(PORT, () =>
+    console.log(`Server is running on this port... ${PORT} `)
+);
