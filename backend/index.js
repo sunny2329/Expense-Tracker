@@ -16,7 +16,11 @@ mongoose
 
 //! Cors config
 const corsOptions = {
-    origin: ["http://localhost:5173"],
+    origin: [
+        "http://localhost:5173",// local environment
+        "https://expense-tracker-pwx1.vercel.app" // vercel app
+    ],
+
 };
 app.use(cors(corsOptions));
 //!Middlewares
